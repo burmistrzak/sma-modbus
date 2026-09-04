@@ -1,0 +1,74 @@
+[build-system]
+requires = ["hatchling>=1.27.0", "hatch-vcs>=0.4.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "sma-modbus"
+dynamic = ["version"]
+description = "Library for SMA Modbus TCP interface, built on modbus-connection"
+readme = "README.md"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
+authors = [{ name = "burmistrzak", email = "61958704+burmistrzak@users.noreply.github.com" }]
+requires-python = ">=3.12"
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Topic :: System :: Hardware",
+]
+dependencies = ["modbus-connection>=4.6.1,<5"]
+
+[tool.hatch.version]
+source = "vcs"
+
+[project.urls]
+Homepage = "https://github.com/burmistrzak/sma-modbus"
+Repository = "https://github.com/burmistrzak/sma-modbus"
+Changelog = "https://github.com/burmistrzak/sma-modbus/releases"
+
+[dependency-groups]
+dev = [
+  # tmodbus backend for the script in scripts/
+  "modbus-connection[tmodbus]>=4.6.1,<5",
+  "mypy>=1.14",
+  "pytest>=8",
+  "pytest-asyncio>=0.25",
+  "ruff>=0.9",
+]
+
+[tool.hatch.build.targets.sdist]
+include = ["sma_modbus"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["sma_modbus"]
+
+[tool.ruff]
+line-length = 88
+
+[tool.ruff.lint]
+select = [
+  "A",     # builtins shadowing
+  "ASYNC", # async checks
+  "B",     # bugbear
+  "D",     # pydocstyle
+  "E",     # pycodestyle errors
+  "F",     # pyflakes
+  "I",     # isort
+  "RUF",   # ruff specific
+  "SIM",   # simplify
+  "UP",    # pyupgrade
+]
+ignore = ["D203", "D213"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["D"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
