@@ -76,9 +76,10 @@ from sma_modbus import SunnyHomeManager
 from sma_modbus.testing import set_input_registers
 
 connection = MockModbusConnection()
-device = SunnyHomeManager(connection.for_unit(2))
+unit = connection.for_unit(2)
+device = SunnyHomeManager(unit)
 set_input_registers(
-    connection.for_unit(2),
+    unit,
     device,
     {"grid_import_energy": 123456, "grid_export_power": 750},
 )

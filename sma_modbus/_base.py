@@ -5,7 +5,15 @@ registers* (function code 4). Every component in this library reads from that
 space, so the base class fixes ``register_space = "input"`` once here.
 """
 
+from enum import IntEnum
+
 from modbus_connection.model import Component
+
+
+class Vendor(IntEnum):
+    """Manufacturer (Nameplate.Vendor, register 30055)."""
+
+    SMA = 461
 
 
 class SmaComponent(Component):
