@@ -5,10 +5,10 @@ A single-phase PV inverter with two MPPT trackers and DC string inputs.
 
 from enum import IntEnum
 
+from modbus_connection.model import NumberField, int32, uint32, uint64
 from modbus_connection.model import enum as enum_field
-from modbus_connection.model import int32, uint32, uint64
 
-from ._base import SmaComponent, Vendor
+from ._base import SmaComponent, Vendor, decode_firmware_version
 
 
 class DeviceClass(IntEnum):
@@ -84,8 +84,10 @@ class SunnyBoy(SmaComponent):
     serial_number = uint32(30057, nan=0xFFFFFFFF)
     """Serial number (Nameplate.SerNum)."""
 
-    firmware_version = uint32(30059, nan=0xFFFFFFFF)
-    """Firmware version (Nameplate.PkgRev)."""
+    firmware_version: NumberField[str] = NumberField(
+        30059, count=2, convert=decode_firmware_version, nan=0xFFFFFFFF
+    )
+    """Firmware version (Nameplate.PkgRev), decoded as Major.Minor.Build.Suffix."""
 
     # Type Label: rated power ratings
     rated_power_in = int32(33019, unit="W", nan=0x80000000)

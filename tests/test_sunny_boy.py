@@ -13,6 +13,7 @@ RAW_VALUES = {
     "device_class": 8001,
     "device_type": 9402,
     "vendor": 461,
+    "firmware_version": 17107460,
     "ac_power": 4000,
     "ac_power_l1": 4000,
     "ac_power_l2": 0,
@@ -60,6 +61,7 @@ async def test_all_fields(mock_modbus_unit: MockModbusUnit) -> None:
     assert device.device_class is DeviceClass.SOLAR_INVERTERS
     assert device.device_type is SunnyBoyModel.SB_3_6
     assert device.vendor is Vendor.SMA
+    assert device.firmware_version == "1.05.10.R"
     assert device.ac_power == 4000
     assert device.ac_power_l1 == 4000
     assert device.ac_power_l2 == 0

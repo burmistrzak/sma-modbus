@@ -18,6 +18,7 @@ RAW_VALUES = {
     "device_class": 8009,
     "device_type": 19085,
     "vendor": 461,
+    "firmware_version": 17107460,
     "ac_power": 4000,
     "ac_power_l1": 4000,
     "ac_power_l2": 0,
@@ -55,7 +56,7 @@ RAW_VALUES = {
     "battery_charge_energy": 1000,
     "battery_discharge_energy": 2000,
     "battery_health": 307,
-    "bms_firmware_version": 1040901,
+    "bms_firmware_version": 33884676,
     "battery_temperature_max": 350,
     "battery_temperature_min": 180,
     "battery_end_of_charge_voltage": 5880,
@@ -96,6 +97,7 @@ async def test_all_fields(mock_modbus_unit: MockModbusUnit) -> None:
     assert device.device_class is DeviceClass.HYBRID_INVERTER
     assert device.device_type is SunnyBoySmartEnergyModel.SBSE_6_0
     assert device.vendor is Vendor.SMA
+    assert device.firmware_version == "1.05.10.R"
     assert device.ac_power == 4000
     assert device.ac_power_l1 == 4000
     assert device.ac_power_l2 == 0
@@ -120,7 +122,7 @@ async def test_all_fields(mock_modbus_unit: MockModbusUnit) -> None:
     assert device.battery_charge_energy == 1000
     assert device.battery_discharge_energy == 2000
     assert device.battery_health is BatteryHealth.OK
-    assert device.bms_firmware_version == 1040901
+    assert device.bms_firmware_version == "2.05.10.R"
     assert device.battery_temperature_max == 35.0
     assert device.battery_temperature_min == 18.0
     assert device.battery_end_of_charge_voltage == 58.8
