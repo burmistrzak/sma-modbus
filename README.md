@@ -5,19 +5,24 @@ Async Python library for the Modbus TCP interface of SMA devices, built on
 
 > [!WARNING]
 >
-> **Alpha version for validation & testing**
+> **Developer Preview**
 >
-> Working, but do not use in production. Please report any issues you come across.
->
-> Partial agentic port of [fronius-modbus](https://github.com/farmio/fronius-modbus). 🫶
+> Working, but **do not** use in production. Please report any issues you come across.
 
-Supports three SMA device types:
+> [!NOTE]
+>
+> Based on a partial agentic port of [fronius-modbus](https://github.com/farmio/fronius-modbus). 🫶
+
+Supports the following SMA devices (so far):
 
 - **Sunny Home Manager 2.0**
 - **Sunny Boy Smart Energy 3.6-6.0**
 - **Sunny Boy 3.0-6.0**
 
-The SMA register map is _mostly_ fixed, but has been changed before slightly with firmware updates.
+Not all Modbus parameters have been added, _yet_. Support for read/write registers _maybe_ later.
+
+The SMA register map is mostly fixed, but it has been slightly modified with firmware updates in the past.
+
 
 ## Reading
 
