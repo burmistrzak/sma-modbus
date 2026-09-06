@@ -1,7 +1,7 @@
 """Read SMA Modbus data for testing.
 
 Usage:
-    uv run scripts/read_device.py <host> --type <device> [--port 502] [--unit 3]
+    uv run scripts/read_device.py <host> --type <device> [--port 502]
 
 ``--type`` selects the device model:
   sunny_home_manager       SMA Sunny Home Manager (grid meter)
@@ -20,17 +20,15 @@ from modbus_connection.tmodbus import connect_tcp
 
 from sma_modbus import DEVICE_CLASSES, DeviceType
 
-# Default Modbus unit ID per device type: the Sunny Home Manager answers on
-# unit 2, inverters on unit 3.
-DEFAULT_UNIT_IDS: dict[DeviceType, int] = {
-    DeviceType.SUNNY_HOME_MANAGER: 2,
-    DeviceType.SUNNY_BOY_SMART_ENERGY: 3,
-    DeviceType.SUNNY_BOY: 3,
-}
-
 # human-friendly labels for each field, in declaration order
 LABELS: dict[DeviceType, dict[str, str]] = {
     DeviceType.SUNNY_HOME_MANAGER: {
+        "modbus_profile_revision": "Modbus profile revision",
+        "susy_id": "SUSyID",
+        "device_class": "Device class",
+        "device_type": "Device type",
+        "vendor": "Manufacturer",
+        "serial_number": "Serial number",
         "system_status": "System status",
         "grid_import_energy": "Grid import energy",
         "grid_export_energy": "Grid export energy",
@@ -174,11 +172,9 @@ LABELS: dict[DeviceType, dict[str, str]] = {
 }
 
 
-async def read_device(
-    host: str, port: int, unit_id: int, device_type: DeviceType
-) -> int:
-    """Read and print the data of one SMA Modbus unit."""
-    print(f"\n=== {host}:{port} unit {unit_id} ({device_type.value}) ===")
+async def read_device(host: str, port: int, device_type: DeviceType) -> int:
+    """Read and print the data of one SMA Modbus device."""
+    print(f"\n=== {host}:{port} ({device_type.value}) ===")
     try:
         connection = await connect_tcp(host, port=port)
     except ModbusError as err:
@@ -187,7 +183,7 @@ async def read_device(
         return 1
 
     try:
-        device = DEVICE_CLASSES[device_type](connection.for_unit(unit_id))
+        device = DEVICE_CLASSES[device_type](connection)
         try:
             await device.async_update()
         except ModbusError as err:
@@ -224,25 +220,18 @@ async def main() -> int:
     )
     parser.add_argument("--port", type=int, default=502, help="Modbus TCP port")
     parser.add_argument(
-        "--unit",
-        type=int,
-        default=None,
-        help="Modbus unit ID (default: 2 for sunny_home_manager, 3 otherwise)",
-    )
-    parser.add_argument(
         "--debug", action="store_true", help="enable verbose protocol logging"
     )
     args = parser.parse_args()
 
     device_type = DeviceType(args.type)
-    unit_id = args.unit if args.unit is not None else DEFAULT_UNIT_IDS[device_type]
 
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
     else:
         logging.getLogger("tmodbus").setLevel(logging.CRITICAL)
 
-    return await read_device(args.host, args.port, unit_id, device_type)
+    return await read_device(args.host, args.port, device_type)
 
 
 if __name__ == "__main__":

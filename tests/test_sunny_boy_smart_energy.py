@@ -1,6 +1,6 @@
 """Tests for the Sunny Boy Smart Energy hybrid inverter."""
 
-from modbus_connection.mock import MockModbusUnit
+from modbus_connection.mock import MockModbusConnection
 
 from sma_modbus import SunnyBoySmartEnergy, Vendor
 from sma_modbus.sunny_boy_smart_energy import (
@@ -86,10 +86,10 @@ RAW_VALUES = {
 }
 
 
-async def test_all_fields(mock_modbus_unit: MockModbusUnit) -> None:
+async def test_all_fields(mock_modbus_connection: MockModbusConnection) -> None:
     """Test every field decodes with sign handling and scaling."""
-    device = SunnyBoySmartEnergy(mock_modbus_unit)
-    set_input_registers(mock_modbus_unit, device, RAW_VALUES)
+    device = SunnyBoySmartEnergy(mock_modbus_connection)
+    set_input_registers(mock_modbus_connection, device, RAW_VALUES)
     await device.async_update()
 
     assert device.pv_power == 5000
@@ -151,19 +151,21 @@ async def test_all_fields(mock_modbus_unit: MockModbusUnit) -> None:
     assert device.insulation_residual_current == 29.0
 
 
-async def test_voltage_scaling(mock_modbus_unit: MockModbusUnit) -> None:
+async def test_voltage_scaling(mock_modbus_connection: MockModbusConnection) -> None:
     """Test the 0.01 scale factor rounds to two decimals."""
-    device = SunnyBoySmartEnergy(mock_modbus_unit)
-    set_input_registers(mock_modbus_unit, device, {**RAW_VALUES, "dc_voltage_0": 0})
+    device = SunnyBoySmartEnergy(mock_modbus_connection)
+    set_input_registers(
+        mock_modbus_connection, device, {**RAW_VALUES, "dc_voltage_0": 0}
+    )
     await device.async_update()
     assert device.dc_voltage_0 == 0
 
 
-async def test_nan_values(mock_modbus_unit: MockModbusUnit) -> None:
+async def test_nan_values(mock_modbus_connection: MockModbusConnection) -> None:
     """Test the sentinels decode to None."""
-    device = SunnyBoySmartEnergy(mock_modbus_unit)
+    device = SunnyBoySmartEnergy(mock_modbus_connection)
     set_input_registers(
-        mock_modbus_unit,
+        mock_modbus_connection,
         device,
         {
             "pv_energy_total": None,
@@ -190,15 +192,14 @@ async def test_nan_values(mock_modbus_unit: MockModbusUnit) -> None:
     assert device.dc_voltage_1 is None
 
 
-async def test_pooled_read(mock_modbus_unit: MockModbusUnit) -> None:
+async def test_pooled_read(mock_modbus_connection: MockModbusConnection) -> None:
     """Test every served block is read in one request."""
-    device = SunnyBoySmartEnergy(mock_modbus_unit)
-    set_input_registers(mock_modbus_unit, device, RAW_VALUES)
+    device = SunnyBoySmartEnergy(mock_modbus_connection)
+    set_input_registers(mock_modbus_connection, device, RAW_VALUES)
     await device.async_update()
 
-    input_reads = [
-        e for e in mock_modbus_unit.read_events if e.register_type == "input"
-    ]
+    unit = mock_modbus_connection.for_unit(device.default_unit_id)
+    input_reads = [e for e in unit.read_events if e.register_type == "input"]
     assert len(input_reads) == len(device.register_ranges)
     assert {e.address for e in input_reads} == {
         span[0] for span in device.register_ranges

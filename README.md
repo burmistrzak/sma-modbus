@@ -21,8 +21,8 @@ The SMA register map is _mostly_ fixed, but has been changed before slightly wit
 
 ## Reading
 
-The library only consumes a `ModbusUnit`, connection lifecycle stays with the
-caller (or with whatever owns the `modbus_connection` connection):
+The library consumes a `ModbusConnection` and manages its own unit handles
+internally — each device class knows which unit IDs to poll:
 
 ```python
 import asyncio
@@ -34,7 +34,7 @@ from sma_modbus import SunnyBoySmartEnergy
 
 async def main() -> None:
     connection = await connect_tcp("192.168.1.50", port=502)
-    inverter = SunnyBoySmartEnergy(connection.for_unit(3))
+    inverter = SunnyBoySmartEnergy(connection)
 
     # one pooled read refreshes the whole device, block by block
     await inverter.async_update()
@@ -58,7 +58,7 @@ powered-down or unsupported measurement is distinct from a real zero.
 `scripts/read_device.py` is a one-shot dump of everything the library reads:
 
 ```
-uv run scripts/read_device.py <host> --type sunny_boy_smart_energy [--port 502] [--unit 3]
+uv run scripts/read_device.py <host> --type sunny_boy_smart_energy [--port 502]
 uv run scripts/read_device.py <host> --type sunny_home_manager
 uv run scripts/read_device.py <host> --type sunny_boy
 ```
@@ -68,7 +68,8 @@ Modbus must be enabled on the device.
 ## Testing support
 
 `sma_modbus.testing` provides `set_input_registers()` to load a
-`modbus_connection.mock.MockModbusUnit` with raw register words for a component:
+`modbus_connection.mock.MockModbusConnection` with raw register words for a
+component:
 
 ```python
 from modbus_connection.mock import MockModbusConnection
@@ -76,10 +77,9 @@ from sma_modbus import SunnyHomeManager
 from sma_modbus.testing import set_input_registers
 
 connection = MockModbusConnection()
-unit = connection.for_unit(2)
-device = SunnyHomeManager(unit)
+device = SunnyHomeManager(connection)
 set_input_registers(
-    unit,
+    connection,
     device,
     {"grid_import_energy": 123456, "grid_export_power": 750},
 )
@@ -87,8 +87,8 @@ await device.async_update()
 assert device.grid_import_energy == 123456
 ```
 
-The `mock_modbus_unit` fixture (shipped by `modbus_connection`'s pytest plugin)
-hands a ready-to-configure unit to each test.
+The `mock_modbus_connection` fixture (shipped by `modbus_connection`'s pytest
+plugin) hands a ready-to-configure connection to each test.
 
 ## Disclaimer
 

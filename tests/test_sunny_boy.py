@@ -1,6 +1,6 @@
 """Tests for the Sunny Boy PV inverter."""
 
-from modbus_connection.mock import MockModbusUnit
+from modbus_connection.mock import MockModbusConnection
 
 from sma_modbus import SunnyBoy, Vendor
 from sma_modbus.sunny_boy import DeviceClass, SunnyBoyModel
@@ -50,10 +50,10 @@ RAW_VALUES = {
 }
 
 
-async def test_all_fields(mock_modbus_unit: MockModbusUnit) -> None:
+async def test_all_fields(mock_modbus_connection: MockModbusConnection) -> None:
     """Test every field decodes with sign handling and scaling."""
-    device = SunnyBoy(mock_modbus_unit)
-    set_input_registers(mock_modbus_unit, device, RAW_VALUES)
+    device = SunnyBoy(mock_modbus_connection)
+    set_input_registers(mock_modbus_connection, device, RAW_VALUES)
     await device.async_update()
 
     assert device.pv_power == 4000
@@ -94,11 +94,11 @@ async def test_all_fields(mock_modbus_unit: MockModbusUnit) -> None:
     assert device.insulation_residual_current == 29.0
 
 
-async def test_nan_values(mock_modbus_unit: MockModbusUnit) -> None:
+async def test_nan_values(mock_modbus_connection: MockModbusConnection) -> None:
     """Test the sentinels decode to None."""
-    device = SunnyBoy(mock_modbus_unit)
+    device = SunnyBoy(mock_modbus_connection)
     set_input_registers(
-        mock_modbus_unit,
+        mock_modbus_connection,
         device,
         {
             "pv_power": None,
@@ -121,15 +121,14 @@ async def test_nan_values(mock_modbus_unit: MockModbusUnit) -> None:
     assert device.dc_voltage_1 is None
 
 
-async def test_pooled_read(mock_modbus_unit: MockModbusUnit) -> None:
+async def test_pooled_read(mock_modbus_connection: MockModbusConnection) -> None:
     """Test reads only touch declared register ranges."""
-    device = SunnyBoy(mock_modbus_unit)
-    set_input_registers(mock_modbus_unit, device, RAW_VALUES)
+    device = SunnyBoy(mock_modbus_connection)
+    set_input_registers(mock_modbus_connection, device, RAW_VALUES)
     await device.async_update()
 
-    input_reads = [
-        e for e in mock_modbus_unit.read_events if e.register_type == "input"
-    ]
+    unit = mock_modbus_connection.for_unit(device.default_unit_id)
+    input_reads = [e for e in unit.read_events if e.register_type == "input"]
     # every read must start at a declared range start
     range_starts = {span[0] for span in device.register_ranges}
     for read in input_reads:

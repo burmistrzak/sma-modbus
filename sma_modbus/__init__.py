@@ -9,7 +9,8 @@ as few requests as the register layout allows.
 from enum import StrEnum
 
 from ._base import SmaComponent, Vendor
-from .home_manager import SunnyHomeManager, SystemStatus
+from .home_manager import DeviceClass as SunnyHomeManagerDeviceClass
+from .home_manager import SunnyHomeManager, SunnyHomeManagerModel, SystemStatus
 from .sunny_boy import DeviceClass as SunnyBoyDeviceClass
 from .sunny_boy import SunnyBoy, SunnyBoyModel
 from .sunny_boy_smart_energy import (
@@ -35,6 +36,8 @@ __all__ = [
     "SunnyBoySmartEnergyDeviceClass",
     "SunnyBoySmartEnergyModel",
     "SunnyHomeManager",
+    "SunnyHomeManagerDeviceClass",
+    "SunnyHomeManagerModel",
     "SystemStatus",
     "Vendor",
 ]
