@@ -18,7 +18,7 @@ Supports the following SMA devices (so far):
 - **Sunny Home Manager 2.0**
 - **Sunny Boy Smart Energy 3.6-6.0**
 - **Sunny Boy 3.0-6.0**
-- **Sunny Tripower 3.0-6.0**
+- **Sunny Tripower 3.0-6.0** <sup>untested</sup>
 
 Not all Modbus parameters have been added, _yet_. Support for read/write registers _maybe_ later.
 
