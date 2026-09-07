@@ -3,9 +3,12 @@
 Usage:
     uv run scripts/read_device.py <host> [--port 502] [--unit <id>]
 
-The device type is auto-detected by reading the Type Label from unit ID 1.
-By default the measurement unit ID is the device's standard unit ID (3 for
-inverters, 2 for the Sunny Home Manager); use ``--unit`` to override it.
+The device type is auto-detected by reading the Type Label (input registers
+30001-30006 and 30051-30056).  By default, unit IDs 1 and 3 are probed to
+find the one serving the Type Label; the measurement unit ID is then the
+device type's standard default (3 for inverters, 2 for the Sunny Home
+Manager).  Use ``--unit`` to read the Type Label from a specific unit ID
+and use it for measurements.
 """
 
 import argparse
@@ -208,6 +211,9 @@ async def read_device(host: str, port: int, unit_id: int | None = None) -> int:
                 value_str = str(value)
             print(f"  {label + ':':32}{value_str}{suffix}")
         return 0
+    except ModbusError as err:
+        print(f"Discovery failed: {err}")
+        return 1
     finally:
         await connection.close()
 
@@ -221,7 +227,8 @@ async def main() -> int:
         "--unit",
         type=int,
         default=None,
-        help="Override the measurement unit ID (default: auto-detected)",
+        help="read the Type Label from this unit ID and use it for measurements "
+        "(default: auto-detect by probing unit 1 then 3)",
     )
     parser.add_argument(
         "--debug", action="store_true", help="enable verbose protocol logging"

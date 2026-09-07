@@ -62,10 +62,20 @@ async def test_discover_sunny_home_manager(
 async def test_discover_sunny_boy(
     mock_modbus_connection: MockModbusConnection,
 ) -> None:
-    """Test discovering a Sunny Boy (device class 8001, default unit 3)."""
+    """Test discovering a Sunny Boy (device class 8001, default unit 3).
+
+    The Sunny Boy does not serve the Type Label on unit 1 (returns NaN),
+    so discovery falls through to unit 3.
+    """
     unit1 = mock_modbus_connection.for_unit(1)
     _setup_type_label(
         unit1,
+        serial=0xFFFFFFFE,
+        device_class=0x00FFFFFD,
+    )
+    unit3 = mock_modbus_connection.for_unit(3)
+    _setup_type_label(
+        unit3,
         serial=98765432,
         device_class=SbDeviceClass.SOLAR_INVERTERS.value,
         device_model=9402,
@@ -104,10 +114,10 @@ async def test_discover_sunny_boy_smart_energy(
 async def test_discover_with_unit_id_override(
     mock_modbus_connection: MockModbusConnection,
 ) -> None:
-    """Test that the unit_id parameter overrides the default."""
-    unit1 = mock_modbus_connection.for_unit(1)
+    """Test that the unit_id parameter reads the Type Label from that unit."""
+    unit5 = mock_modbus_connection.for_unit(5)
     _setup_type_label(
-        unit1,
+        unit5,
         serial=98765432,
         device_class=SbDeviceClass.SOLAR_INVERTERS.value,
     )
@@ -124,12 +134,12 @@ async def test_discover_sunny_boy_smart_energy_custom_unit_id_and_read(
 ) -> None:
     """Test discovering a SBSE and reading its data with a custom unit ID.
 
-    The device is constructed with the discovered unit ID and its Type Label
-    (unit 1) and measurement data (unit 4) are read back.
+    The Type Label is read from unit 4 (the provided unit_id) and the
+    measurement data is read back from the same unit.
     """
-    unit1 = mock_modbus_connection.for_unit(1)
+    unit4 = mock_modbus_connection.for_unit(4)
     _setup_type_label(
-        unit1,
+        unit4,
         serial=30001234,
         device_class=SbseDeviceClass.HYBRID_INVERTER.value,
         device_model=19085,
@@ -171,15 +181,16 @@ async def test_discover_sunny_boy_smart_energy_custom_unit_id_and_read(
 async def test_discover_nan_serial(
     mock_modbus_connection: MockModbusConnection,
 ) -> None:
-    """Test that a NaN serial raises ModbusError."""
+    """Test that a NaN serial on all probed units raises ModbusError."""
     from modbus_connection import ModbusError
 
-    unit1 = mock_modbus_connection.for_unit(1)
-    _setup_type_label(
-        unit1,
-        serial=0xFFFFFFFF,
-        device_class=SbDeviceClass.SOLAR_INVERTERS.value,
-    )
+    for uid in (1, 3):
+        unit = mock_modbus_connection.for_unit(uid)
+        _setup_type_label(
+            unit,
+            serial=0xFFFFFFFF,
+            device_class=SbDeviceClass.SOLAR_INVERTERS.value,
+        )
 
     try:
         await discover(mock_modbus_connection)
@@ -192,15 +203,16 @@ async def test_discover_nan_serial(
 async def test_discover_nan_device_class(
     mock_modbus_connection: MockModbusConnection,
 ) -> None:
-    """Test that a NaN device class raises ModbusError."""
+    """Test that a NaN device class on all probed units raises ModbusError."""
     from modbus_connection import ModbusError
 
-    unit1 = mock_modbus_connection.for_unit(1)
-    _setup_type_label(
-        unit1,
-        serial=12345678,
-        device_class=0xFFFFFFFF,
-    )
+    for uid in (1, 3):
+        unit = mock_modbus_connection.for_unit(uid)
+        _setup_type_label(
+            unit,
+            serial=12345678,
+            device_class=0xFFFFFFFF,
+        )
 
     try:
         await discover(mock_modbus_connection)
