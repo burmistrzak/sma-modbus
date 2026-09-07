@@ -18,6 +18,7 @@ Supports the following SMA devices (so far):
 - **Sunny Home Manager 2.0**
 - **Sunny Boy Smart Energy 3.6-6.0**
 - **Sunny Boy 3.0-6.0**
+- **Sunny Tripower 3.0-6.0**
 
 Not all Modbus parameters have been added, _yet_. Support for read/write registers _maybe_ later.
 
@@ -28,7 +29,7 @@ The SMA register map is mostly fixed, but it has been slightly modified with fir
 
 The library consumes a `ModbusConnection` and manages its own unit handles
 internally. Use `discover()` to auto-detect the device type and serial number
-from the Type Label on unit ID 1:
+from the Type Label (probes unit ID 1, then unit ID 3):
 
 ```python
 import asyncio
@@ -57,9 +58,11 @@ async def main() -> None:
 asyncio.run(main())
 ```
 
-Pass `unit_id=` to `discover()` to override the default measurement unit ID
-(3 for inverters, 2 for the Sunny Home Manager) for edge cases where a device
-has been reconfigured:
+Pass `unit_id=` to `discover()` to read the Type Label from a specific unit ID
+and use it for measurements. This covers inverters that have been reconfigured
+to a non-default unit ID. Without `unit_id`, discovery probes unit IDs 1 and 3
+and uses the device type's standard default (3 for inverters, 2 for the
+Sunny Home Manager):
 
 ```python
 info = await discover(connection, unit_id=5)

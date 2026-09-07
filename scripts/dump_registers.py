@@ -28,7 +28,7 @@ INPUT_REGISTERS: list[tuple[int, str, int]] = [
     (30053, "Device type / model", 2),
     (30055, "Manufacturer", 2),
     (30057, "Serial number (30057)", 2),
-#    (30059, "Firmware version", 2),
+    #    (30059, "Firmware version", 2),
 ]
 
 # Holding registers: SMA Modbus TI section 5.2.1 "Unit ID assignment".

@@ -186,9 +186,7 @@ async def discover(
             break
 
     if label is None:
-        raise ModbusError(
-            f"Could not read Type Label from unit ID {probe_ids[-1]}"
-        )
+        raise ModbusError(f"Could not read Type Label from unit ID {probe_ids[-1]}")
 
     device_class = label["device_class"]
 
