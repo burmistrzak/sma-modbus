@@ -48,12 +48,15 @@ def set_input_registers(
 
     Fields declared in ``component.field_unit_ids`` are written to the mock
     unit for their target unit ID; all others go to the component's primary
-    unit (``component.default_unit_id``).
+    unit — the unit ID it was constructed with, not ``default_unit_id``, so
+    devices with a discovered non-default unit ID are handled correctly.
 
     Raises ``KeyError`` for an unknown field name.
     """
     field_unit_ids = getattr(component, "field_unit_ids", {})
-    primary_uid = component.default_unit_id
+    # Determine the actual primary unit ID from the component's ModbusUnit.
+    # For a MockModbusUnit this is ``_unit_id``; fall back to default_unit_id.
+    primary_uid = getattr(component.modbus_unit, "_unit_id", component.default_unit_id)
 
     for name, raw in values.items():
         field = component.declared_fields[name]

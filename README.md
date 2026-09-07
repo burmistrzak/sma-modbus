@@ -27,19 +27,21 @@ The SMA register map is mostly fixed, but it has been slightly modified with fir
 ## Reading
 
 The library consumes a `ModbusConnection` and manages its own unit handles
-internally — each device class knows which unit IDs to poll:
+internally. Use `discover()` to auto-detect the device type and serial number
+from the Type Label on unit ID 1:
 
 ```python
 import asyncio
 
 from modbus_connection.tmodbus import connect_tcp
 
-from sma_modbus import SunnyBoySmartEnergy
+from sma_modbus import DEVICE_CLASSES, discover
 
 
 async def main() -> None:
     connection = await connect_tcp("192.168.1.50", port=502)
-    inverter = SunnyBoySmartEnergy(connection)
+    info = await discover(connection)
+    inverter = DEVICE_CLASSES[info.device_type](connection, info.unit_id)
 
     # one pooled read refreshes the whole device, block by block
     await inverter.async_update()
@@ -55,6 +57,14 @@ async def main() -> None:
 asyncio.run(main())
 ```
 
+Pass `unit_id=` to `discover()` to override the default measurement unit ID
+(3 for inverters, 2 for the Sunny Home Manager) for edge cases where a device
+has been reconfigured:
+
+```python
+info = await discover(connection, unit_id=5)
+```
+
 A field reads as `None` when the device reports its not-a-value sentinel, so a
 powered-down or unsupported measurement is distinct from a real zero.
 
@@ -63,10 +73,11 @@ powered-down or unsupported measurement is distinct from a real zero.
 `scripts/read_device.py` is a one-shot dump of everything the library reads:
 
 ```
-uv run scripts/read_device.py <host> --type sunny_boy_smart_energy [--port 502]
-uv run scripts/read_device.py <host> --type sunny_home_manager
-uv run scripts/read_device.py <host> --type sunny_boy
+uv run scripts/read_device.py <host> [--port 502] [--unit <id>]
 ```
+
+The device type is auto-detected. Use `--unit` to override the measurement
+unit ID if the device has been reconfigured.
 
 Modbus must be enabled on the device.
 

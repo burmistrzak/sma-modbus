@@ -1,12 +1,11 @@
 """Read SMA Modbus data for testing.
 
 Usage:
-    uv run scripts/read_device.py <host> --type <device> [--port 502]
+    uv run scripts/read_device.py <host> [--port 502] [--unit <id>]
 
-``--type`` selects the device model:
-  sunny_home_manager       SMA Sunny Home Manager (grid meter)
-  sunny_boy_smart_energy   SMA Sunny Boy Smart Energy (hybrid inverter)
-  sunny_boy                SMA Sunny Boy (PV inverter)
+The device type is auto-detected by reading the Type Label from unit ID 1.
+By default the measurement unit ID is the device's standard unit ID (3 for
+inverters, 2 for the Sunny Home Manager); use ``--unit`` to override it.
 """
 
 import argparse
@@ -18,7 +17,7 @@ from enum import IntEnum
 from modbus_connection import ModbusError
 from modbus_connection.tmodbus import connect_tcp
 
-from sma_modbus import DEVICE_CLASSES, DeviceType
+from sma_modbus import DEVICE_CLASSES, DeviceType, discover
 
 # human-friendly labels for each field, in declaration order
 LABELS: dict[DeviceType, dict[str, str]] = {
@@ -172,9 +171,9 @@ LABELS: dict[DeviceType, dict[str, str]] = {
 }
 
 
-async def read_device(host: str, port: int, device_type: DeviceType) -> int:
+async def read_device(host: str, port: int, unit_id: int | None = None) -> int:
     """Read and print the data of one SMA Modbus device."""
-    print(f"\n=== {host}:{port} ({device_type.value}) ===")
+    print(f"\n=== {host}:{port} ===")
     try:
         connection = await connect_tcp(host, port=port)
     except ModbusError as err:
@@ -183,14 +182,19 @@ async def read_device(host: str, port: int, device_type: DeviceType) -> int:
         return 1
 
     try:
-        device = DEVICE_CLASSES[device_type](connection)
+        info = await discover(connection, unit_id=unit_id)
+        print(
+            f"  Discovered: {info.device_type.value},"
+            f" serial {info.serial_number}, unit {info.unit_id}"
+        )
+        device = DEVICE_CLASSES[info.device_type](connection, info.unit_id)
         try:
             await device.async_update()
         except ModbusError as err:
             print(f"Reading data failed: {err}")
             return 1
 
-        labels = LABELS[device_type]
+        labels = LABELS.get(info.device_type, {})
         for name in device.declared_fields:
             value = getattr(device, name)
             unit = device.declared_fields[name].unit
@@ -212,26 +216,24 @@ async def main() -> int:
     """Run the reader."""
     parser = argparse.ArgumentParser(description="Read SMA Modbus data")
     parser.add_argument("host", help="IP address or hostname of the device")
-    parser.add_argument(
-        "--type",
-        required=True,
-        choices=[t.value for t in DeviceType],
-        help="SMA device model",
-    )
     parser.add_argument("--port", type=int, default=502, help="Modbus TCP port")
+    parser.add_argument(
+        "--unit",
+        type=int,
+        default=None,
+        help="Override the measurement unit ID (default: auto-detected)",
+    )
     parser.add_argument(
         "--debug", action="store_true", help="enable verbose protocol logging"
     )
     args = parser.parse_args()
-
-    device_type = DeviceType(args.type)
 
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
     else:
         logging.getLogger("tmodbus").setLevel(logging.CRITICAL)
 
-    return await read_device(args.host, args.port, device_type)
+    return await read_device(args.host, args.port, args.unit)
 
 
 if __name__ == "__main__":
