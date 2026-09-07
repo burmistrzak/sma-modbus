@@ -9,7 +9,7 @@ from enum import IntEnum
 from modbus_connection.model import NumberField, int32, uint32, uint64
 from modbus_connection.model import enum as enum_field
 
-from ._base import SmaComponent, Vendor, decode_firmware_version
+from ._base import SmaComponent, SystemStatus, Vendor, decode_firmware_version
 
 
 class DeviceClass(IntEnum):
@@ -60,6 +60,7 @@ class SunnyBoySmartEnergy(SmaComponent):
     register_ranges = (
         (30001, 30004),  # Type Label: Modbus profile revision, SUSyID
         (30051, 30060),  # Type Label: device class, model, vendor, serial, firmware
+        (30201, 30202),  # system status
         (30225, 30226),  # insulation resistance
         (30769, 30796),  # DC string 0 + AC power/voltage/current
         (30803, 30804),  # AC frequency
@@ -113,6 +114,10 @@ class SunnyBoySmartEnergy(SmaComponent):
         30059, count=2, convert=decode_firmware_version, nan=0xFFFFFFFF
     )
     """Firmware version (Nameplate.PkgRev), decoded as Major.Minor.Build.Suffix."""
+
+    # System status
+    system_status = enum_field(30201, SystemStatus, count=2, nan=0x00FFFFFD)
+    """System status (Operation.Health)."""
 
     # Type Label: rated power ratings
     rated_power_out = int32(33017, unit="W", nan=0x80000000)

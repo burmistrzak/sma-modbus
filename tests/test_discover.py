@@ -6,6 +6,7 @@ from sma_modbus import DEVICE_CLASSES, DeviceType, discover
 from sma_modbus.home_manager import DeviceClass as ShmDeviceClass
 from sma_modbus.sunny_boy import DeviceClass as SbDeviceClass
 from sma_modbus.sunny_boy_smart_energy import DeviceClass as SbseDeviceClass
+from sma_modbus.sunny_tripower import SunnyTripowerModel as StpModel
 from sma_modbus.testing import set_input_registers
 
 
@@ -109,6 +110,27 @@ async def test_discover_sunny_boy_smart_energy(
     assert info.unit_id == 3
     assert info.device_class == SbseDeviceClass.HYBRID_INVERTER.value
     assert info.device_model == 19085
+
+
+async def test_discover_sunny_tripower(
+    mock_modbus_connection: MockModbusConnection,
+) -> None:
+    """Test discovering a Sunny Tripower (device class 8001, model 9344)."""
+    unit1 = mock_modbus_connection.for_unit(1)
+    _setup_type_label(
+        unit1,
+        serial=11223344,
+        device_class=SbDeviceClass.SOLAR_INVERTERS.value,
+        device_model=StpModel.STP_4_0.value,
+    )
+
+    info = await discover(mock_modbus_connection)
+
+    assert info.device_type is DeviceType.SUNNY_TRIPOWER
+    assert info.serial_number == 11223344
+    assert info.unit_id == 3
+    assert info.device_class == SbDeviceClass.SOLAR_INVERTERS.value
+    assert info.device_model == StpModel.STP_4_0.value
 
 
 async def test_discover_with_unit_id_override(

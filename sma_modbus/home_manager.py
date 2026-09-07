@@ -14,15 +14,7 @@ from typing import ClassVar
 from modbus_connection.model import enum as enum_field
 from modbus_connection.model import int32, uint32
 
-from ._base import SmaComponent, Vendor
-
-
-class SystemStatus(IntEnum):
-    """SMA system status (register 30201)."""
-
-    OK = 307
-    WARNING = 455
-    ERROR = 35
+from ._base import SmaComponent, SystemStatus, Vendor
 
 
 class DeviceClass(IntEnum):

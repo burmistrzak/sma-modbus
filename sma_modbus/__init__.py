@@ -16,9 +16,9 @@ from enum import StrEnum
 
 from modbus_connection import ModbusConnection, ModbusError, ModbusUnit
 
-from ._base import SmaComponent, Vendor
+from ._base import SmaComponent, SystemStatus, Vendor
 from .home_manager import DeviceClass as SunnyHomeManagerDeviceClass
-from .home_manager import SunnyHomeManager, SunnyHomeManagerModel, SystemStatus
+from .home_manager import SunnyHomeManager, SunnyHomeManagerModel
 from .sunny_boy import DeviceClass as SunnyBoyDeviceClass
 from .sunny_boy import SunnyBoy, SunnyBoyModel
 from .sunny_boy_smart_energy import (
@@ -30,6 +30,7 @@ from .sunny_boy_smart_energy import (
 from .sunny_boy_smart_energy import (
     DeviceClass as SunnyBoySmartEnergyDeviceClass,
 )
+from .sunny_tripower import SunnyTripower, SunnyTripowerModel
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -49,6 +50,8 @@ __all__ = [
     "SunnyHomeManager",
     "SunnyHomeManagerDeviceClass",
     "SunnyHomeManagerModel",
+    "SunnyTripower",
+    "SunnyTripowerModel",
     "SystemStatus",
     "Vendor",
     "discover",
@@ -61,12 +64,14 @@ class DeviceType(StrEnum):
     SUNNY_HOME_MANAGER = "sunny_home_manager"
     SUNNY_BOY_SMART_ENERGY = "sunny_boy_smart_energy"
     SUNNY_BOY = "sunny_boy"
+    SUNNY_TRIPOWER = "sunny_tripower"
 
 
 DEVICE_CLASSES: dict[DeviceType, type[SmaComponent]] = {
     DeviceType.SUNNY_HOME_MANAGER: SunnyHomeManager,
     DeviceType.SUNNY_BOY_SMART_ENERGY: SunnyBoySmartEnergy,
     DeviceType.SUNNY_BOY: SunnyBoy,
+    DeviceType.SUNNY_TRIPOWER: SunnyTripower,
 }
 
 
@@ -74,6 +79,10 @@ DEVICE_CLASSES: dict[DeviceType, type[SmaComponent]] = {
 _DEVICE_CLASS_SHM = SunnyHomeManagerDeviceClass.COMMUNICATION_PRODUCTS.value
 _DEVICE_CLASS_SB = SunnyBoyDeviceClass.SOLAR_INVERTERS.value
 _DEVICE_CLASS_SBSE = SunnyBoySmartEnergyDeviceClass.HYBRID_INVERTER.value
+
+# Sunny Tripower and Sunny Boy share device class 8001 (Solar Inverters).
+# Distinguish by device model (Nameplate.Model, register 30053).
+_STP_MODELS = frozenset(SunnyTripowerModel)
 
 
 @dataclass(frozen=True, slots=True)
@@ -186,10 +195,15 @@ async def discover(
     # Map device class to DeviceType.
     if device_class == _DEVICE_CLASS_SHM:
         device_type = DeviceType.SUNNY_HOME_MANAGER
-    elif device_class == _DEVICE_CLASS_SB:
-        device_type = DeviceType.SUNNY_BOY
     elif device_class == _DEVICE_CLASS_SBSE:
         device_type = DeviceType.SUNNY_BOY_SMART_ENERGY
+    elif device_class == _DEVICE_CLASS_SB:
+        # Sunny Boy and Sunny Tripower share device class 8001.
+        # Distinguish by device model (Nameplate.Model).
+        if label["device_model"] in _STP_MODELS:
+            device_type = DeviceType.SUNNY_TRIPOWER
+        else:
+            device_type = DeviceType.SUNNY_BOY
     else:
         raise ModbusError(f"Unknown device class: {device_class}")
 

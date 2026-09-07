@@ -1,6 +1,6 @@
-"""SMA Sunny Boy 3.0-6.0.
+"""SMA Sunny Tripower 3.0-6.0.
 
-A single-phase PV inverter with two MPPT trackers and DC string inputs.
+A three-phase PV inverter with up to four MPPT trackers and DC string inputs.
 """
 
 from enum import IntEnum
@@ -17,54 +17,43 @@ class DeviceClass(IntEnum):
     SOLAR_INVERTERS = 8001
 
 
-class SunnyBoyModel(IntEnum):
+class SunnyTripowerModel(IntEnum):
     """Inverter model (Nameplate.Model, register 30053)."""
 
-    SB_3_0 = 9401
-    SB_3_6 = 9402
-    SB_4_0 = 9403
-    SB_5_0 = 9404
-    SB_6_0 = 9405
+    STP_3_0 = 9366
+    STP_4_0 = 9344
+    STP_5_0 = 9345
+    STP_6_0 = 9346
 
 
-class SunnyBoy(SmaComponent):
-    """PV yield, per-string DC and AC grid data of a Sunny Boy inverter."""
+class SunnyTripower(SmaComponent):
+    """PV yield, per-string DC and three-phase AC grid data of a Sunny Tripower."""
 
     register_ranges = (
         (30001, 30004),  # Type Label: Modbus profile revision, SUSyID
         (30051, 30060),  # Type Label: device class, model, vendor, serial, firmware
         (30201, 30202),  # system status
         (30225, 30226),  # insulation resistance
-        (30769, 30796),  # DC string 0 + AC power/voltage/current
-        (30803, 30804),  # AC frequency
-        (30807, 30820),  # AC reactive/apparent power
+        (30231, 30232),  # rated active power WMaxOutRtg
+        (30513, 30516),  # total yield (64-bit)
+        (30581, 30584),  # energy counters
+        (30769, 30796),  # DC string 1 + AC power/voltage/current
+        (30803, 30820),  # AC frequency + reactive/apparent power
+        (30865, 30868),  # power drawn/feed-in
         (30949, 30950),  # AC power factor
-        (30957, 30962),  # DC string 1 current/voltage/power
-        (30977, 30982),  # AC grid current per phase
+        (30953, 30954),  # internal temperature
+        (30957, 30962),  # DC string 2 current/voltage/power
+        (30975, 30982),  # intermediate circuit voltage + AC grid current per phase
         (31221, 31222),  # AC EEI power factor
         (31247, 31248),  # insulation residual current
-        (31253, 31264),  # AC metering voltage + power per phase
-        (31271, 31278),  # AC metering reactive power per phase + total
-        (31433, 31434),  # AC metering power factor
-        (31435, 31440),  # AC metering current per phase
-        (31441, 31446),  # AC metering apparent power per phase
-        (31447, 31448),  # AC metering frequency
-        (31449, 31454),  # AC metering voltage phase-to-phase
-        (31455, 31456),  # AC metering apparent power total
-        (31497, 31498),  # AC reactive power total
-        (31499, 31500),  # AC EEI power factor (metering)
-        (31793, 31796),  # DC string 2 current inputs
-        (32341, 32342),  # AC metering power feed-in (duplicate)
+        (31497, 31500),  # AC reactive power total + EEI
+        (31793, 31796),  # DC strings 3-4 current
         (33019, 33044),  # Type Label: rated power ratings
-        (35469, 35474),  # PV power + PV energy
     )
 
-    # PV
-    pv_power = uint32(35469, unit="W", nan=0xFFFFFFFF)
-    """Current PV power (PvGen.PvW)."""
-
-    pv_energy_total = uint64(35471, unit="Wh", nan=0xFFFFFFFFFFFFFFFF)
-    """Total PV yield (PvGen.PvWh)."""
+    # Total yield
+    pv_energy_total = uint64(30513, unit="Wh", nan=0xFFFFFFFFFFFFFFFF)
+    """Total yield (Metering.TotWhOut)."""
 
     # Type Label: device identification
     modbus_profile_revision = uint32(30001, nan=0xFFFFFFFF)
@@ -76,7 +65,7 @@ class SunnyBoy(SmaComponent):
     device_class = enum_field(30051, DeviceClass, count=2, nan=0xFFFFFFFF)
     """Device class (Nameplate.MainModel)."""
 
-    device_type = enum_field(30053, SunnyBoyModel, count=2, nan=0xFFFFFFFF)
+    device_type = enum_field(30053, SunnyTripowerModel, count=2, nan=0xFFFFFFFF)
     """Device type (Nameplate.Model)."""
 
     vendor = enum_field(30055, Vendor, count=2, nan=0xFFFFFFFF)
@@ -95,6 +84,9 @@ class SunnyBoy(SmaComponent):
     """System status (Operation.Health)."""
 
     # Type Label: rated power ratings
+    rated_power_out = uint32(30231, unit="W", nan=0xFFFFFFFF)
+    """Rated active power WMaxOutRtg (Inverter.WLim)."""
+
     rated_power_in = int32(33019, unit="W", nan=0x80000000)
     """Rated active power WMaxInRtg."""
 
@@ -127,6 +119,13 @@ class SunnyBoy(SmaComponent):
 
     rated_pf_min_q4 = uint32(33043, scale=0.0001, nan=0xFFFFFFFF)
     """Rated cos phi PFMinQ4Rtg, FIX4."""
+
+    # Energy counters
+    grid_import_energy = uint32(30581, unit="Wh", nan=0xFFFFFFFF)
+    """Energy drawn from the utility grid (Metering.GridMs.TotWhIn)."""
+
+    grid_export_energy = uint32(30583, unit="Wh", nan=0xFFFFFFFF)
+    """Energy fed into the utility grid (Metering.GridMs.TotWhOut)."""
 
     # AC power (GridMs.TotW / GridMs.W.phs*), FIX0
     ac_power = int32(30775, unit="W", nan=0x80000000)
@@ -210,26 +209,39 @@ class SunnyBoy(SmaComponent):
     power_factor_eei = int32(31221, scale=0.001, nan=0x80000000)
     """EEI displacement power factor (GridMs.TotPFEEI)."""
 
+    # Grid power (Metering.GridMs.TotW*), FIX0
+    grid_import_power = int32(30865, unit="W", nan=0x80000000)
+    """Active power drawn from the grid (Metering.GridMs.TotWIn)."""
+
+    grid_export_power = int32(30867, unit="W", nan=0x80000000)
+    """Active power fed into the grid (Metering.GridMs.TotWOut)."""
+
     # Per-string DC power (DcMs.Watt[n]), FIX0
     dc_power_0 = int32(30773, unit="W", nan=0x80000000)
-    """DC power, string 0."""
+    """DC power, string 1."""
 
     dc_power_1 = int32(30961, unit="W", nan=0x80000000)
-    """DC power, string 1."""
+    """DC power, string 2."""
 
     # Per-string DC voltage (DcMs.Vol[n]), FIX2
     dc_voltage_0 = int32(30771, scale=0.01, unit="V", nan=0x80000000)
-    """DC voltage, string 0."""
+    """DC voltage, string 1."""
 
     dc_voltage_1 = int32(30959, scale=0.01, unit="V", nan=0x80000000)
-    """DC voltage, string 1."""
+    """DC voltage, string 2."""
 
     # Per-string DC current (DcMs.Amp[n]), FIX3
     dc_current_0 = int32(30769, scale=0.001, unit="A", nan=0x80000000)
-    """DC current, string 0."""
+    """DC current, string 1."""
 
     dc_current_1 = int32(30957, scale=0.001, unit="A", nan=0x80000000)
-    """DC current, string 1."""
+    """DC current, string 2."""
+
+    dc_current_2 = int32(31793, scale=0.001, unit="A", nan=0x80000000)
+    """DC current, string 3."""
+
+    dc_current_3 = int32(31795, scale=0.001, unit="A", nan=0x80000000)
+    """DC current, string 4."""
 
     # Insulation monitoring (DC Side)
     insulation_resistance = uint32(30225, unit="ohm", nan=0xFFFFFFFF)
@@ -237,3 +249,11 @@ class SunnyBoy(SmaComponent):
 
     insulation_residual_current = int32(31247, scale=0.001, unit="A", nan=0x80000000)
     """Residual current from insulation monitoring (Isolation.FltA), FIX3."""
+
+    # Internal temperature (Coolsys.Cab.TmpVal), TEMPERATURE format
+    internal_temperature = int32(30953, scale=0.1, unit="\u00b0C", nan=0x80000000)
+    """Internal inverter temperature (Coolsys.Cab.TmpVal)."""
+
+    # Intermediate circuit voltage (Inverter.DclVol), FIX2
+    intermediate_circuit_voltage = int32(30975, scale=0.01, unit="V", nan=0x80000000)
+    """Intermediate circuit voltage (Inverter.DclVol)."""

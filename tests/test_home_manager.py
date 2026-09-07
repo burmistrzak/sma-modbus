@@ -96,7 +96,7 @@ async def test_nan_values(mock_modbus_connection: MockModbusConnection) -> None:
     [
         (307, SystemStatus.OK),
         (455, SystemStatus.WARNING),
-        (35, SystemStatus.ERROR),
+        (35, SystemStatus.FAULT),
     ],
 )
 async def test_system_status(

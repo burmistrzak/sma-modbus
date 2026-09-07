@@ -47,6 +47,15 @@ class Vendor(IntEnum):
     SMA = 461
 
 
+class SystemStatus(IntEnum):
+    """SMA system status (Operation.Health, register 30201)."""
+
+    FAULT = 35
+    OFF = 303
+    OK = 307
+    WARNING = 455
+
+
 class SmaComponent(Component):
     """An SMA device modelled on its input-register block.
 
